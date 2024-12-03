@@ -10,8 +10,8 @@ namespace HeThongQuanLyVanBanCongVan.Models
     public class PhongBan
     {
         // Các thuộc tính với tên chuẩn của C#
-        public string MaPhongBan { get; set; }
-        public string TenPhongBan { get; set; }
+        private string MaPhongBan;
+        private string TenPhongBan;
 
         // Constructor mặc định
         public PhongBan()
@@ -30,6 +30,24 @@ namespace HeThongQuanLyVanBanCongVan.Models
         public PhongBan(string maPhongBan, string tenPhongBan)
         {
             this.MaPhongBan = maPhongBan;
+            this.TenPhongBan = tenPhongBan;
+        }
+
+        public string GetMaPhongBan()
+        {
+            return this.MaPhongBan;
+        }
+        public string GetTenPhongBan() 
+        { 
+            return this.TenPhongBan; 
+        }
+
+        public void SetMaPhongBan(String maPhongBan)
+        {
+            this.MaPhongBan = maPhongBan;
+        }
+        public void SetTenPhongBan(String tenPhongBan)
+        {
             this.TenPhongBan = tenPhongBan;
         }
     }

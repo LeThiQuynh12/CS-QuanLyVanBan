@@ -48,7 +48,11 @@
   <ItemGroup>
     <Compile Include="Controllers\KetNoiCSDL.cs" />
     <Compile Include="Controllers\PhongBanController.cs" />
+    <Compile Include="Controllers\TaiLieuController.cs" />
+    <Compile Include="Controllers\VanBanNoiBoController.cs" />
     <Compile Include="Models\PhongBan.cs" />
+    <Compile Include="Models\TaiLieu.cs" />
+    <Compile Include="Models\VanBanNoiBo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="View\TrangCho.cs">
@@ -104,6 +108,11 @@
   <ItemGroup>
     <None Include="Resources\encrypted.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="Resources\reset.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\service1.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
