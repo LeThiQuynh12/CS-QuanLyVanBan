@@ -11,6 +11,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using HeThongQuanLyVanBanCongVan.View;
+using System.Drawing.Printing;
 
 namespace HeThongQuanLyVanBanCongVan
 {
@@ -24,7 +28,7 @@ namespace HeThongQuanLyVanBanCongVan
             // Phòng ban
             initTablePhongBan();
             fillDataPhongBan();
-            MessageBox.Show("Bảng đã được thêm vào form");
+            //MessageBox.Show("Bảng đã được thêm vào form");
 
 
             // Văn bản nội bộ
@@ -39,7 +43,7 @@ namespace HeThongQuanLyVanBanCongVan
             // Tim kiém thống kê
             LoadComboboxData1();
             InitTableVanBanNoiBo1();
-            
+            FillDataVanBanNoiBo1();
 
         }
 
@@ -61,8 +65,29 @@ namespace HeThongQuanLyVanBanCongVan
             dataGridViewPhongBan.AllowUserToAddRows = false;
             dataGridViewPhongBan.AllowUserToDeleteRows = false;
             dataGridViewPhongBan.ReadOnly = false;
+
+            // Đặt kích thước cột theo tỷ lệ phần trăm
+            AdjustColumnWidths();
+        }
+        private void dataGridViewPhongBan_Resize(object sender, EventArgs e)
+        {
+            AdjustColumnWidths(); // Cập nhật lại kích thước cột khi kích thước DataGridView thay đổi
         }
 
+        // Hàm điều chỉnh kích thước cột theo tỷ lệ phần trăm
+        public void AdjustColumnWidths()
+        {
+            // Lấy chiều rộng của DataGridView
+            int totalWidth = dataGridViewPhongBan.Width;
+
+            // Tính toán kích thước của từng cột theo tỷ lệ phần trăm
+            int sttWidth = totalWidth * 3 / 10; // 3 phần
+            int tenPhongBanWidth = totalWidth * 7 / 10; // 7 phần
+
+            // Áp dụng kích thước cho các cột
+            dataGridViewPhongBan.Columns["STT"].Width = sttWidth;
+            dataGridViewPhongBan.Columns["TenPhongBan"].Width = tenPhongBanWidth;
+        }
         // Điền dữ liệu vào bảng
         public void fillDataPhongBan()
         {
@@ -302,7 +327,44 @@ namespace HeThongQuanLyVanBanCongVan
         }
 
 
+        public void FillDataVanBanNoiBo1()
+        {
+            List<VanBanNoiBo> lst = null;
 
+            try
+            {
+                // Lấy dữ liệu từ Controller
+                lst = new VanBanNoiBoController().GetAll();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi lấy dữ liệu: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Xóa dữ liệu cũ trong bảng
+            dataGridViewVBNB1.Rows.Clear();
+
+            // Thêm từng dòng vào DataGridView
+            for (int i = 0; i < lst.Count; i++)
+            {
+                VanBanNoiBo vb = lst[i];
+
+                dataGridViewVBNB1.Rows.Add(
+                    vb.SoKyHieu ?? "", // Xử lý null thành chuỗi rỗng
+                    vb.TenVanBan ?? "",
+                    vb.NgayBanHanh.ToString("yyyy-MM-dd"), // Định dạng ngày tháng
+                    vb.LoaiBanHanh ?? "",
+                    vb.PhongBanHanh ?? "",
+                    vb.PhongNhan ?? "",
+                    vb.NguoiNhan ?? "",
+                    vb.NguoiKy ?? "",
+                    vb.NguoiDuyet ?? "",
+                    vb.TrichYeu ?? "",
+                    vb.NoiDung ?? ""
+                );
+            }
+        }
 
 
         // ------------------------- TÀI LIỆU ----------------------------
@@ -326,6 +388,15 @@ namespace HeThongQuanLyVanBanCongVan
             // Thiết lập không cho phép thêm và xóa dòng
             dataGridViewTaiLieu.AllowUserToAddRows = false;
             dataGridViewTaiLieu.AllowUserToDeleteRows = false;
+
+            // Đặt chế độ AutoSizeMode là Fill cho các cột cần chiếm diện tích đều
+            dataGridViewTaiLieu.Columns["TenTaiLieu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewTaiLieu.Columns["NgayTao"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewTaiLieu.Columns["KichCo"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewTaiLieu.Columns["Loai"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+
+            // Nếu muốn các cột có kích thước cố định có thể để AutoSizeMode là AllCells
+            // dataGridViewTaiLieu.Columns["TenTaiLieu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
         }
 
         public void FillDataTaiLieu()
@@ -506,26 +577,33 @@ namespace HeThongQuanLyVanBanCongVan
 
         private void btnDinhKem_Click(object sender, EventArgs e)
         {
-            //  initTableTaiLieu();
             try
             {
+                // Lấy thư mục gốc dự án (lùi lên 3 cấp)
+                string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.FullName;
+
+                // Thư mục VanBanNoiBo
+                string allowedFolder = Path.Combine(projectRoot, "VanBanNoiBo");
+
+                // Kiểm tra nếu thư mục VanBanNoiBo không tồn tại
+                if (!Directory.Exists(allowedFolder))
+                {
+                    MessageBox.Show("Thư mục VanBanNoiBo không tồn tại. Vui lòng kiểm tra lại.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 // Khởi tạo hộp thoại chọn file
                 OpenFileDialog fileDialog = new OpenFileDialog
                 {
                     Filter = "Tất cả các tệp (*.*)|*.*",
-                    Title = "Chọn tệp đính kèm"
+                    Title = "Chọn tệp đính kèm",
+                    InitialDirectory = allowedFolder // Thiết lập thư mục mặc định
                 };
 
                 // Hiển thị hộp thoại
                 if (fileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string absolutePath = fileDialog.FileName;
-
-                    // Lấy thư mục gốc dự án (lùi lên 3 cấp)
-                    string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.FullName;
-
-                    // Thư mục VanBanNoiBo
-                    string allowedFolder = Path.Combine(projectRoot, "VanBanNoiBo");
 
                     // Kiểm tra xem tệp có nằm trong thư mục VanBanNoiBo không
                     if (!absolutePath.StartsWith(allowedFolder, StringComparison.OrdinalIgnoreCase))
@@ -536,7 +614,6 @@ namespace HeThongQuanLyVanBanCongVan
 
                     // Chuyển đổi sang đường dẫn tương đối
                     string relativePath = GetRelativePath(projectRoot, absolutePath).Replace("\\", "/");
-
 
                     // Lấy thông tin tài liệu
                     string tenTL = Path.GetFileName(absolutePath); // Tên tệp tin
@@ -1019,14 +1096,16 @@ namespace HeThongQuanLyVanBanCongVan
                     {
                         try
                         {
-                            DateTime ngaybanhanh = DateTime.ParseExact(ngayBanHanhStr, "yyyy-MM-dd", null); // Đổi định dạng thành "yyyy-MM-dd"
+                            // Định dạng "dd/MM/yyyy"
+                            DateTime ngaybanhanh = DateTime.ParseExact(ngayBanHanhStr, "yyyy/MM/dd", null);
                             dateNgayBanHanh.Value = ngaybanhanh;
                         }
                         catch (FormatException)
                         {
-                            MessageBox.Show("Ngày ban hành không hợp lệ!");
+                           // MessageBox.Show("Ngày ban hành không hợp lệ! Vui lòng kiểm tra định dạng ngày: dd/MM/yyyy.");
                         }
                     }
+
 
                     // Cập nhật các ComboBox
                     if (cmbLoaiBanHanh.Items.Contains(loaibanhanh))
@@ -1201,9 +1280,540 @@ namespace HeThongQuanLyVanBanCongVan
                 dateTimePicker4.Value = endDate.Value;   // Đặt giá trị "đến ngày"
 
                 // Gọi phương thức để hiển thị danh sách văn bản trong khoảng thời gian
-                FilterAndDisplayVanBan(startDate.Value, endDate.Value);
+                FilterAndDisplayVanBan1(startDate.Value, endDate.Value);
             }
 
+        }
+
+
+        private void FilterAndDisplayVanBan1(DateTime startDate, DateTime endDate)
+        {
+            VanBanNoiBoController controller = new VanBanNoiBoController();
+            try
+            {
+                // Lấy danh sách văn bản nội bộ theo khoảng thời gian
+                List<VanBanNoiBo> vanBanList = controller.FilterDataByDateRange(startDate, endDate);
+
+                // Xóa toàn bộ dữ liệu cũ trong bảng
+                dataGridViewVBNB1.Rows.Clear();
+
+                // Thêm dữ liệu mới
+                foreach (VanBanNoiBo vanBan in vanBanList)
+                {
+                    dataGridViewVBNB1.Rows.Add(
+                        vanBan.SoKyHieu,
+                        vanBan.TenVanBan,
+                        vanBan.NgayBanHanh,
+                        vanBan.LoaiBanHanh,
+                        vanBan.PhongBanHanh,
+                        vanBan.PhongNhan,
+                        vanBan.NguoiNhan,
+                        vanBan.NguoiKy,
+                        vanBan.NguoiDuyet,
+                        vanBan.TrichYeu,
+                        vanBan.NoiDung
+                    );
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Lỗi khi tải dữ liệu: " + e.Message);
+            }
+
+        }
+
+
+
+        private void TrangChu_FormClosing(object sender, FormClosingEventArgs e)
+        {
+          Application.Exit();
+        }
+
+        private void XuatExcel_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Title = "Chọn nơi lưu file Excel";
+                saveFileDialog.Filter = "Excel Files (*.xlsx)|*.xlsx";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string filePath = saveFileDialog.FileName;
+
+                    try
+                    {
+                        // Khởi tạo workbook và sheet
+                        using (var package = new OfficeOpenXml.ExcelPackage())
+                        {
+                            var sheet = package.Workbook.Worksheets.Add("VanBanNoiBo");
+
+                            // Lấy dữ liệu từ DataGridView
+                            DataGridView gridView = dataGridViewPhongBan;
+
+                            // Tạo header (bỏ qua cột "Mã Phòng Ban", index = 2)
+                            int colIndex = 1;
+                            for (int i = 0; i < gridView.ColumnCount; i++)
+                            {
+                                if (i == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                sheet.Cells[1, colIndex].Value = gridView.Columns[i].HeaderText;
+
+                                // Thiết lập style cho tiêu đề
+                                var headerCell = sheet.Cells[1, colIndex];
+                                headerCell.Style.Font.Bold = true;
+                                headerCell.Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
+                                colIndex++;
+                            }
+
+                            // Ghi dữ liệu từ bảng vào file Excel
+                            for (int row = 0; row < gridView.RowCount; row++)
+                            {
+                                colIndex = 1;
+                                for (int col = 0; col < gridView.ColumnCount; col++)
+                                {
+                                    if (col == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                    var value = gridView.Rows[row].Cells[col].Value;
+                                    sheet.Cells[row + 2, colIndex].Value = value != null ? value.ToString() : "";
+                                    colIndex++;
+                                }
+                            }
+
+                            // Lưu file ra đĩa
+                            package.SaveAs(new FileInfo(filePath));
+                        }
+
+                        MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Mở file Excel vừa xuất
+                        if (File.Exists(filePath))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = filePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        else
+                        {
+                            MessageBox.Show("Máy tính của bạn không hỗ trợ mở file tự động.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Lỗi khi xuất file: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void picXoa_Click(object sender, EventArgs e)
+        {
+            // Lấy chỉ số dòng được chọn
+            int selectedRow = dataGridViewPhongBan.SelectedRows.Count > 0 ? dataGridViewPhongBan.SelectedRows[0].Index : -1;
+
+            if (selectedRow == -1)
+            {
+                MessageBox.Show("Vui lòng chọn một dòng để xóa.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Lấy mã phòng ban từ cột ẩn (giả sử cột MaPhongBan là cột thứ 2)
+            string maPhongBan = dataGridViewPhongBan.Rows[selectedRow].Cells[2].Value.ToString();
+
+            // Hỏi xác nhận xóa
+            DialogResult confirm = MessageBox.Show("Bạn có chắc chắn muốn xóa phòng ban này?",
+                "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+            {
+                try
+                {
+                    PhongBanController controller = new PhongBanController();
+
+                    // Gọi phương thức XoaPhongBan để xóa phòng ban
+                    if (controller.XoaPhongBan(maPhongBan))
+                    {
+                        MessageBox.Show("Xóa phòng ban thành công", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        fillDataPhongBan(); // Cập nhật lại dữ liệu
+                    }
+                    else
+                    {
+                        MessageBox.Show("Không thể xóa phòng ban.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Có lỗi xảy ra: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Log lỗi nếu cần
+                    Console.WriteLine(ex.StackTrace);
+                }
+            }
+        }
+
+        private void btnXoaVBNB_Click(object sender, EventArgs e)
+        {
+            // Lấy dòng đã chọn từ DataGridView
+            int selectedRow = dataGridViewVBNB.SelectedRows.Count > 0 ? dataGridViewVBNB.SelectedRows[0].Index : -1;
+
+            if (selectedRow == -1)
+            {
+                MessageBox.Show("Vui lòng chọn một dòng để xóa.");
+                return;
+            }
+
+            // Lấy giá trị từ ô text
+            string soKyHieu = txtSoKyHieu.Text;
+
+            // Hỏi xác nhận xóa
+            DialogResult confirm = MessageBox.Show(
+                "Bạn có chắc chắn muốn xóa tài liệu này?",
+                "Xác nhận xóa",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+            {
+                try
+                {
+                    // Gọi phương thức xóa từ controller
+                    VanBanNoiBoController controller = new VanBanNoiBoController();
+                    if (controller.Xoa(soKyHieu))
+                    {
+                        try
+                        {
+                            MessageBox.Show("Xóa thành công.");
+                            FillDataVanBanNoiBo();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Lỗi khi làm mới dữ liệu: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            // Log lỗi nếu cần
+                            Console.WriteLine(ex.StackTrace);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xóa tài liệu: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Log lỗi nếu cần
+                    Console.WriteLine(ex.StackTrace);
+                }
+            }
+        }
+
+        private void pictureBox4_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Title = "Chọn nơi lưu file Excel";
+                saveFileDialog.Filter = "Excel Files (*.xlsx)|*.xlsx";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string filePath = saveFileDialog.FileName;
+
+                    try
+                    {
+                        // Khởi tạo workbook và sheet
+                        using (var package = new ExcelPackage())
+                        {
+                            var sheet = package.Workbook.Worksheets.Add("VanBanNoiBo");
+
+                            // Lấy dữ liệu từ DataGridView
+                            DataGridView gridView = dataGridViewVBNB; 
+
+                            // Tạo header (bỏ qua cột "Mã Phòng Ban", index = 2)
+                            int colIndex = 1;
+                            for (int i = 0; i < gridView.ColumnCount; i++)
+                            {
+                                if (i == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                sheet.Cells[1, colIndex].Value = gridView.Columns[i].HeaderText;
+
+                                // Thiết lập style cho tiêu đề
+                                var headerCell = sheet.Cells[1, colIndex];
+                                headerCell.Style.Font.Bold = true;
+                                headerCell.Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
+                                colIndex++;
+                            }
+
+                            // Ghi dữ liệu từ bảng vào file Excel
+                            for (int row = 0; row < gridView.RowCount; row++)
+                            {
+                                colIndex = 1;
+                                for (int col = 0; col < gridView.ColumnCount; col++)
+                                {
+                                    if (col == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                    var value = gridView.Rows[row].Cells[col].Value;
+                                    sheet.Cells[row + 2, colIndex].Value = value != null ? value.ToString() : "";
+                                    colIndex++;
+                                }
+                            }
+
+                            // Lưu file ra đĩa
+                            package.SaveAs(new FileInfo(filePath));
+                        }
+
+                        MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Mở file Excel vừa xuất
+                        if (File.Exists(filePath))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = filePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        else
+                        {
+                            MessageBox.Show("Máy tính của bạn không hỗ trợ mở file tự động.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Lỗi khi xuất file: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void button18_Click(object sender, EventArgs e)
+        {
+            tabControl2.SelectedTab = tabPageTimKiem;
+
+            tabControl4.SelectedTab = tabPage7;
+        }
+
+        private void button19_Click(object sender, EventArgs e)
+        {
+            tabControl2.SelectedTab = tabPageTimKiem;
+
+            tabControl4.SelectedTab = tabPage8;
+        }
+
+        private void button20_Click(object sender, EventArgs e)
+        {
+
+            tabControl2.SelectedTab = tabPageTimKiem;
+
+            tabControl4.SelectedTab = tabPage9;
+        }
+
+        private void btnTimKiem_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void btnXemChiTiet_Click(object sender, EventArgs e)
+        {
+            int row = this.dataGridViewVBNB1.SelectedCells[0].RowIndex;
+
+            if (row != -1)
+            {
+                // Lấy thông tin từ dòng được chọn
+                string sokyhieu = this.dataGridViewVBNB1.Rows[row].Cells[0].Value.ToString();
+                string tenvanban = this.dataGridViewVBNB1.Rows[row].Cells[1].Value.ToString();
+                string ngayBanHanhStr = this.dataGridViewVBNB1.Rows[row].Cells[2].Value.ToString();
+                string loaibanhanh = this.dataGridViewVBNB1.Rows[row].Cells[3].Value.ToString();
+                string phongbanhanh = this.dataGridViewVBNB1.Rows[row].Cells[4].Value.ToString();
+                string phongbannhan = this.dataGridViewVBNB1.Rows[row].Cells[5].Value.ToString();
+                string nguoinhan = this.dataGridViewVBNB1.Rows[row].Cells[6].Value.ToString();
+                string nguoiky = this.dataGridViewVBNB1.Rows[row].Cells[7].Value.ToString();
+                string nguoiduyet = this.dataGridViewVBNB1.Rows[row].Cells[8].Value.ToString();
+                string trichyeu = this.dataGridViewVBNB1.Rows[row].Cells[9].Value.ToString();
+                string noidung = this.dataGridViewVBNB1.Rows[row].Cells[10].Value.ToString();
+
+                // Mở form Chi tiết và truyền dữ liệu
+                ChiTietVanBanNoiBo vbChiTiet = new ChiTietVanBanNoiBo(
+                    sokyhieu, tenvanban, ngayBanHanhStr, loaibanhanh, phongbanhanh, phongbannhan,
+                    nguoinhan, nguoiky, nguoiduyet, trichyeu, noidung);
+                vbChiTiet.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng chọn một dòng!");
+            }
+        }
+
+        private void dataGridViewVBNB1_CellMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            int row = e.RowIndex;
+
+            if (row != -1)
+            {
+                // Lấy thông tin từ dòng được chọn
+                string sokyhieu = this.dataGridViewVBNB1.Rows[row].Cells[0].Value.ToString();
+                string tenvanban = this.dataGridViewVBNB1.Rows[row].Cells[1].Value.ToString();
+                string ngayBanHanhStr = this.dataGridViewVBNB1.Rows[row].Cells[2].Value.ToString();
+                string loaibanhanh = this.dataGridViewVBNB1.Rows[row].Cells[3].Value.ToString();
+                string phongbanhanh = this.dataGridViewVBNB1.Rows[row].Cells[4].Value.ToString();
+                string phongbannhan = this.dataGridViewVBNB1.Rows[row].Cells[5].Value.ToString();
+                string nguoinhan = this.dataGridViewVBNB1.Rows[row].Cells[6].Value.ToString();
+                string nguoiky = this.dataGridViewVBNB1.Rows[row].Cells[7].Value.ToString();
+                string nguoiduyet = this.dataGridViewVBNB1.Rows[row].Cells[8].Value.ToString();
+                string trichyeu = this.dataGridViewVBNB1.Rows[row].Cells[9].Value.ToString();
+                string noidung = this.dataGridViewVBNB1.Rows[row].Cells[10].Value.ToString();
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng chọn một dòng!");
+            }
+        }
+
+        private void btnXuatExcel_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Title = "Chọn nơi lưu file Excel";
+                saveFileDialog.Filter = "Excel Files (*.xlsx)|*.xlsx";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string filePath = saveFileDialog.FileName;
+
+                    try
+                    {
+                        // Khởi tạo workbook và sheet
+                        using (var package = new ExcelPackage())
+                        {
+                            var sheet = package.Workbook.Worksheets.Add("VanBanNoiBo");
+
+                            // Lấy dữ liệu từ DataGridView
+                            DataGridView gridView = dataGridViewVBNB1;
+
+                            // Tạo header (bỏ qua cột "Mã Phòng Ban", index = 2)
+                            int colIndex = 1;
+                            for (int i = 0; i < gridView.ColumnCount; i++)
+                            {
+                                if (i == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                sheet.Cells[1, colIndex].Value = gridView.Columns[i].HeaderText;
+
+                                // Thiết lập style cho tiêu đề
+                                var headerCell = sheet.Cells[1, colIndex];
+                                headerCell.Style.Font.Bold = true;
+                                headerCell.Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
+                                colIndex++;
+                            }
+
+                            // Ghi dữ liệu từ bảng vào file Excel
+                            for (int row = 0; row < gridView.RowCount; row++)
+                            {
+                                colIndex = 1;
+                                for (int col = 0; col < gridView.ColumnCount; col++)
+                                {
+                                    if (col == 2) continue; // Bỏ qua cột "Mã Phòng Ban"
+                                    var value = gridView.Rows[row].Cells[col].Value;
+                                    sheet.Cells[row + 2, colIndex].Value = value != null ? value.ToString() : "";
+                                    colIndex++;
+                                }
+                            }
+
+                            // Lưu file ra đĩa
+                            package.SaveAs(new FileInfo(filePath));
+                        }
+
+                        MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Mở file Excel vừa xuất
+                        if (File.Exists(filePath))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = filePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        else
+                        {
+                            MessageBox.Show("Máy tính của bạn không hỗ trợ mở file tự động.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Lỗi khi xuất file: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void btnInbaocao_Click(object sender, EventArgs e)
+        {
+            // Kiểm tra nếu không có dữ liệu trong DataGridView
+            if (dataGridViewVBNB1.Rows.Count == 0)
+            {
+                MessageBox.Show("Không có dữ liệu để in!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Tăng kích cỡ chữ và chiều cao dòng của DataGridView
+            dataGridViewVBNB1.DefaultCellStyle.Font = new Font("Arial", 12, FontStyle.Regular);
+            dataGridViewVBNB1.RowTemplate.Height = 22;
+            dataGridViewVBNB1.ColumnHeadersDefaultCellStyle.Font = new Font("Arial", 12, FontStyle.Bold);
+
+            // Thiết lập in
+            PrintDocument printDoc = new PrintDocument();
+            printDoc.PrintPage += new PrintPageEventHandler(PrintPage);
+
+            PrintPreviewDialog printPreview = new PrintPreviewDialog
+            {
+                Document = printDoc,
+                Width = 800,
+                Height = 600
+            };
+
+            // Hiển thị hộp thoại xem trước in
+            printPreview.ShowDialog();
+        }
+
+        private void PrintPage(object sender, PrintPageEventArgs e)
+        {
+            int x = 50; // Lề trái
+            int y = 100; // Lề trên
+            int cellHeight = 30;
+            int colWidth = 100; // Chiều rộng cột cố định (có thể thay đổi tùy theo nội dung)
+
+            // Tiêu đề báo cáo
+            e.Graphics.DrawString("Danh sách văn bản nội bộ", new Font("Arial", 16, FontStyle.Bold), Brushes.Black, new Point(250, 50));
+
+            // Vẽ header của bảng
+            for (int i = 0; i < dataGridViewVBNB1.Columns.Count; i++)
+            {
+                e.Graphics.FillRectangle(Brushes.LightGray, new Rectangle(x, y, colWidth, cellHeight));
+                e.Graphics.DrawRectangle(Pens.Black, new Rectangle(x, y, colWidth, cellHeight));
+                e.Graphics.DrawString(dataGridViewVBNB1.Columns[i].HeaderText, new Font("Arial", 12, FontStyle.Bold), Brushes.Black, new PointF(x + 5, y + 5));
+                x += colWidth;
+            }
+
+            y += cellHeight; // Xuống dòng sau header
+            x = 50; // Reset vị trí lề trái
+
+            // Vẽ dữ liệu từ DataGridView
+            foreach (DataGridViewRow row in dataGridViewVBNB1.Rows)
+            {
+                if (row.IsNewRow) continue; // Bỏ qua hàng mới
+
+                for (int i = 0; i < dataGridViewVBNB1.Columns.Count; i++)
+                {
+                    string value = row.Cells[i].Value?.ToString() ?? "";
+                    e.Graphics.DrawRectangle(Pens.Black, new Rectangle(x, y, colWidth, cellHeight));
+                    e.Graphics.DrawString(value, new Font("Arial", 12, FontStyle.Regular), Brushes.Black, new PointF(x + 5, y + 5));
+                    x += colWidth;
+                }
+
+                y += cellHeight; // Xuống dòng sau mỗi hàng
+                x = 50; // Reset vị trí lề trái
+
+                // Nếu vượt quá chiều cao trang, ngắt trang
+                if (y + cellHeight > e.MarginBounds.Height)
+                {
+                    e.HasMorePages = true;
+                    return;
+                }
+            }
+
+            e.HasMorePages = false; // Kết thúc trang
+
+            // Chân trang
+            e.Graphics.DrawString("Quản lý văn bản", new Font("Arial", 12, FontStyle.Italic), Brushes.Black, new Point(250, e.MarginBounds.Bottom + 20));
         }
 
 
@@ -1211,6 +1821,7 @@ namespace HeThongQuanLyVanBanCongVan
 
 
 
-
+     
     }
 }
+
