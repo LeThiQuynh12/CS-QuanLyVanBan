@@ -16,7 +16,7 @@ namespace HeThongQuanLyVanBanCongVan
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new TrangChu());
+            Application.Run(new TrangCho());
         }
     }
 }

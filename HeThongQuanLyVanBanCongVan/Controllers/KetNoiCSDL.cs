@@ -6,7 +6,7 @@ namespace HeThongQuanLyVanBanCongVan.Controllers
     public class KetNoiCSDL
     {
         // Đảm bảo kết nối là readonly và sử dụng chuỗi kết nối đúng
-        protected readonly SqlConnection conn;
+        protected  SqlConnection conn;
 
         // Constructor
         public KetNoiCSDL()

@@ -233,8 +233,76 @@ namespace HeThongQuanLyVanBanCongVan.Controllers
             return list;
         }
 
-       
 
+        public List<VanBanNoiBo> Search(
+          string loaiBanHanh,
+          string phongBanHanh,
+          string phongBanNhan,
+          string soKyHieu,
+          string tenVanBan,
+          string trichYeu,
+          DateTime? startDate,
+          DateTime? endDate)
+        {
+            List<VanBanNoiBo> list = new List<VanBanNoiBo>();
+            string query = @"
+            SELECT vb.SoKyHieu, vb.TenVanBan, vb.NgayBanHanh, l.loaivanban AS LoaiBanHanh, 
+                   pbH.TenPhongBan AS PhongBanHanh, pbN.TenPhongBan AS PhongNhan, 
+                   vb.NguoiNhan, vb.NguoiKy, vb.NguoiDuyet, vb.TrichYeu, vb.NoiDung
+            FROM VanBanNoiBo vb
+            JOIN LOAIVANBAN l ON vb.maloai = l.maloai
+            JOIN tblPhongBan pbH ON vb.MaBanHanh = pbH.MaPhongBan
+            JOIN tblPhongBan pbN ON vb.MaBanNhan = pbN.MaPhongBan
+            WHERE 1 = 1";
+
+            // Thêm điều kiện lọc
+            if (!string.IsNullOrEmpty(loaiBanHanh) && loaiBanHanh != "Tất cả")
+                query += " AND l.loaivanban LIKE @LoaiBanHanh";
+            if (!string.IsNullOrEmpty(phongBanHanh) && phongBanHanh != "Tất cả")
+                query += " AND pbH.TenPhongBan LIKE @PhongBanHanh";
+            if (!string.IsNullOrEmpty(phongBanNhan) && phongBanNhan != "Tất cả")
+                query += " AND pbN.TenPhongBan LIKE @PhongBanNhan";
+            if (!string.IsNullOrEmpty(soKyHieu))
+                query += " AND vb.SoKyHieu LIKE @SoKyHieu";
+            if (!string.IsNullOrEmpty(tenVanBan))
+                query += " AND vb.TenVanBan LIKE @TenVanBan";
+            if (!string.IsNullOrEmpty(trichYeu))
+                query += " AND vb.TrichYeu LIKE @TrichYeu";
+            if (startDate.HasValue && endDate.HasValue)
+                query += " AND vb.NgayBanHanh BETWEEN @StartDate AND @EndDate";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                if (!string.IsNullOrEmpty(loaiBanHanh) && loaiBanHanh != "Tất cả")
+                    cmd.Parameters.AddWithValue("@LoaiBanHanh", "%" + loaiBanHanh + "%");
+                if (!string.IsNullOrEmpty(phongBanHanh) && phongBanHanh != "Tất cả")
+                    cmd.Parameters.AddWithValue("@PhongBanHanh", "%" + phongBanHanh + "%");
+                if (!string.IsNullOrEmpty(phongBanNhan) && phongBanNhan != "Tất cả")
+                    cmd.Parameters.AddWithValue("@PhongBanNhan", "%" + phongBanNhan + "%");
+                if (!string.IsNullOrEmpty(soKyHieu))
+                    cmd.Parameters.AddWithValue("@SoKyHieu", "%" + soKyHieu + "%");
+                if (!string.IsNullOrEmpty(tenVanBan))
+                    cmd.Parameters.AddWithValue("@TenVanBan", "%" + tenVanBan + "%");
+                if (!string.IsNullOrEmpty(trichYeu))
+                    cmd.Parameters.AddWithValue("@TrichYeu", "%" + trichYeu + "%");
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@StartDate", startDate.Value);
+                    cmd.Parameters.AddWithValue("@EndDate", endDate.Value);
+                }
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        VanBanNoiBo obj = new VanBanNoiBo(reader);
+                        list.Add(obj);
+                    }
+                }
+            }
+
+            return list;
+        }
 
 
 

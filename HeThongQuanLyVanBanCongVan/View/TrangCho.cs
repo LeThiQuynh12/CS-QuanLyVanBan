@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HeThongQuanLyVanBanCongVan.View;
+using System;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -19,7 +20,7 @@ namespace HeThongQuanLyVanBanCongVan
                 await Task.Delay(50); // Thay thế Thread.Sleep bằng Task.Delay để tránh chặn giao diện
                 if (i == progressLoad.Maximum)
                 {
-                    TrangChu dangnhap = new TrangChu();
+                    FormDangNhap dangnhap = new FormDangNhap();
                     dangnhap.Show();
                     this.Hide();
                 }
@@ -38,6 +39,11 @@ namespace HeThongQuanLyVanBanCongVan
         private void TrangCho_FormClosing(object sender, FormClosingEventArgs e)
         {
          Application.Exit();
+        }
+
+        private void panel1_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }
